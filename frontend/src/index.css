@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+@layer base {
+  body {
+    background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+    background-color: #FAF7FD;
+    color: #2D3748;
+    font-family: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100vh;
+  }
+}
+
+/* Pastel Theme Gradients & Backgrounds */
+.bg-pastel-mesh {
+  background-color: #FAF5FF;
+  background-image: 
+    radial-gradient(at 10% 20%, rgba(254, 205, 211, 0.45) 0px, transparent 50%),
+    radial-gradient(at 85% 15%, rgba(199, 210, 254, 0.5) 0px, transparent 50%),
+    radial-gradient(at 30% 80%, rgba(209, 250, 229, 0.5) 0px, transparent 50%),
+    radial-gradient(at 80% 85%, rgba(254, 240, 138, 0.45) 0px, transparent 50%);
+}
+
+.bg-pastel-pink {
+  background-color: #FFE5EC;
+}
+
+.bg-pastel-lavender {
+  background-color: #F0EBFF;
+}
+
+.bg-pastel-mint {
+  background-color: #E6FAF0;
+}
+
+.bg-pastel-yellow {
+  background-color: #FFF9DB;
+}
+
+.bg-pastel-sky {
+  background-color: #E3F2FD;
+}
+
+/* 3D Cute Candy Buttons (Duolingo Style) */
+.candy-btn {
+  transition: all 0.15s ease-in-out;
+  cursor: pointer;
+  font-weight: 700;
+  border-radius: 1.25rem;
+  border-bottom-width: 5px;
+  user-select: none;
+}
+
+.candy-btn:hover {
+  filter: brightness(1.04);
+  transform: translateY(-2px);
+}
+
+.candy-btn:active {
+  transform: translateY(3px);
+  border-bottom-width: 2px;
+}
+
+.candy-btn-purple {
+  background-color: #9D7CEE;
+  border-color: #7B52DC;
+  color: #ffffff;
+}
+
+.candy-btn-purple:hover {
+  background-color: #A98AF3;
+}
+
+.candy-btn-pink {
+  background-color: #FF758F;
+  border-color: #E05370;
+  color: #ffffff;
+}
+
+.candy-btn-pink:hover {
+  background-color: #FF8BA0;
+}
+
+.candy-btn-mint {
+  background-color: #48BB78;
+  border-color: #2F855A;
+  color: #ffffff;
+}
+
+.candy-btn-mint:hover {
+  background-color: #38A169;
+}
+
+.candy-btn-coral {
+  background-color: #FF6B6B;
+  border-color: #D94848;
+  color: #ffffff;
+}
+
+.candy-btn-yellow {
+  background-color: #ECC94B;
+  border-color: #D69E2E;
+  color: #744210;
+}
+
+.candy-btn-white {
+  background-color: #FFFFFF;
+  border-color: #E2E8F0;
+  color: #4A5568;
+}
+
+.candy-btn-white:hover {
+  background-color: #F7FAFC;
+}
+
+/* Cute Pastel Card Container */
+.pastel-card {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  border-radius: 1.75rem;
+  border: 2px solid rgba(230, 220, 250, 0.7);
+  box-shadow: 0 10px 25px -5px rgba(157, 124, 238, 0.08), 0 8px 10px -6px rgba(157, 124, 238, 0.04);
+}
+
+.pastel-card-hover {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.pastel-card-hover:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 18px 30px -8px rgba(157, 124, 238, 0.16);
+}
+
+/* Mascot Floating Animation */
+@keyframes cute-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1.5deg);
+  }
+}
+
+.animate-cute-float {
+  animation: cute-float 3.5s ease-in-out infinite;
+}
+
+/* Menace Vibration Animation for High Threat */
+@keyframes menace-twitch {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-2px, 1px) rotate(-1deg); }
+  40% { transform: translate(2px, -1px) rotate(1deg); }
+  60% { transform: translate(-1px, -1px) rotate(-0.5deg); }
+  80% { transform: translate(1px, 1px) rotate(0.5deg); }
+}
+
+.animate-menace {
+  animation: menace-twitch 0.4s infinite;
+}
+
+/* Token Sorting Slot Styles */
+.sorting-token {
+  transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.sorting-token:hover {
+  transform: translateY(-2px) scale(1.05);
+}
+
+.sorting-token:active {
+  transform: scale(0.95);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 9px;
+  height: 9px;
+}
+
+::-webkit-scrollbar-track {
+  background: #FAF5FF;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D8B4FE;
+  border-radius: 9999px;
+  border: 2px solid #FAF5FF;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #C084FC;
+}

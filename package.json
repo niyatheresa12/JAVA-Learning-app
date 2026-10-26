@@ -1,0 +1,15 @@
+{
+  "name": "javapuff-java-learning-app",
+  "version": "1.0.0",
+  "description": "Cute & Threatening Java Learning Academy with 36 sublevels, 540 questions, syntax sorting, and SQLite database",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "start": "node backend/src/index.js",
+    "backend": "npm run start --prefix backend",
+    "frontend": "npm run dev --prefix frontend",
+    "build": "npm run build --prefix frontend"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}

@@ -99,6 +99,28 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const decrementHeart = async () => {
+    try {
+      const res = await threatService.decrementHeart();
+      if (res && res.success) {
+        updateUser({ hearts: res.hearts, threat_level: res.threat_level });
+        return res.hearts;
+      }
+    } catch (e) {
+      console.error('Error decrementing heart on server:', e);
+    }
+    // Fallback local decrement
+    let fallbackHearts = 5;
+    setUser((prev) => {
+      if (!prev) return prev;
+      fallbackHearts = Math.max(0, (prev.hearts ?? 5) - 1);
+      const next = { ...prev, hearts: fallbackHearts };
+      localStorage.setItem('javapuff_user', JSON.stringify(next));
+      return next;
+    });
+    return fallbackHearts;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -109,6 +131,7 @@ export const AuthProvider = ({ children }) => {
         soundEnabled,
         toggleSound,
         refillHearts,
+        decrementHeart,
         login,
         register,
         logout,

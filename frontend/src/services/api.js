@@ -94,6 +94,10 @@ export const threatService = {
     const response = await api.post('/user/hearts/refill');
     return response.data;
   },
+  decrementHeart: async () => {
+    const response = await api.post('/user/hearts/decrement');
+    return response.data;
+  },
 };
 
 export default api;

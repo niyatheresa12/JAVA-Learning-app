@@ -11,14 +11,14 @@ import {
   XCircle, 
   Star, 
   Home,
-  Code2,
-  HelpCircle
+  HelpCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 const SublevelQuizPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user, updateUser } = useAuth();
+  const { user, updateUser, decrementHeart, refillHearts } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [sublevel, setSublevel] = useState(null);
@@ -35,6 +35,7 @@ const SublevelQuizPage = () => {
   const [koffiCommentary, setKoffiCommentary] = useState('');
 
   const [sessionHearts, setSessionHearts] = useState(user?.hearts ?? 5);
+  const [showOutOfHeartsModal, setShowOutOfHeartsModal] = useState(false);
 
   const [isFinished, setIsFinished] = useState(false);
   const [submissionResult, setSubmissionResult] = useState(null);
@@ -57,6 +58,13 @@ const SublevelQuizPage = () => {
 
     fetchQuestions();
   }, [id]);
+
+  // Keep session hearts synced if user object changes
+  useEffect(() => {
+    if (user && typeof user.hearts === 'number') {
+      setSessionHearts(user.hearts);
+    }
+  }, [user?.hearts]);
 
   const currentQ = questions[currentIndex];
 
@@ -127,8 +135,14 @@ const SublevelQuizPage = () => {
     }));
   };
 
-  const handleCheckAnswer = () => {
-    if (!currentQ) return;
+  // Strictly check answer against correct_answer in the database
+  const handleCheckAnswer = async () => {
+    if (!currentQ || hasCheckedCurrent) return;
+
+    if (sessionHearts <= 0) {
+      setShowOutOfHeartsModal(true);
+      return;
+    }
 
     let answered = false;
     let givenAnswer = null;
@@ -145,31 +159,62 @@ const SublevelQuizPage = () => {
 
     if (!answered) return;
 
-    let isCorrectGuess = true;
+    let isCorrect = false;
+
+    // 1. Strict Sorting Evaluation
     if (currentQ.question_type === 'sorting') {
-      isCorrectGuess = selectedTokens.length === currentQ.options.length;
-    } else {
-      isCorrectGuess = givenAnswer.toLowerCase().includes('should be') || 
-                       givenAnswer.toLowerCase().includes('lowercase') ||
-                       givenAnswer.length > 0;
+      let correctTokens = currentQ.correct_answer;
+      if (typeof correctTokens === 'string') {
+        try {
+          correctTokens = JSON.parse(correctTokens);
+        } catch (e) {
+          correctTokens = [correctTokens];
+        }
+      }
+
+      isCorrect = Array.isArray(selectedTokens) &&
+        Array.isArray(correctTokens) &&
+        selectedTokens.length === correctTokens.length &&
+        selectedTokens.every((val, i) => String(val).trim() === String(correctTokens[i]).trim());
+    } 
+    // 2. Strict Case-Fix and MCQ Evaluation
+    else {
+      let correctStr = currentQ.correct_answer;
+      if (typeof correctStr === 'object') {
+        correctStr = JSON.stringify(correctStr);
+      }
+      isCorrect = String(givenAnswer).trim().toLowerCase() === String(correctStr).trim().toLowerCase();
     }
 
     setHasCheckedCurrent(true);
-    setCurrentIsCorrect(isCorrectGuess);
-    sounds.playClick();
+    setCurrentIsCorrect(isCorrect);
 
-    if (isCorrectGuess) {
+    if (isCorrect) {
       sounds.playCorrect();
-      setKoffiCommentary('Correct order. Well done!');
+      setKoffiCommentary('Correct answer! Well done.');
     } else {
       sounds.playWrong();
-      setSessionHearts((h) => Math.max(0, h - 1));
-      setKoffiCommentary('Incorrect. Review the syntax structure.');
+      setKoffiCommentary('Incorrect syntax. 1 Heart lost!');
+
+      // Decrement hearts from 5 to 4 to 3...
+      const remaining = await decrementHeart();
+      const updatedHearts = typeof remaining === 'number' ? remaining : Math.max(0, sessionHearts - 1);
+      setSessionHearts(updatedHearts);
+
+      if (updatedHearts <= 0) {
+        setTimeout(() => setShowOutOfHeartsModal(true), 900);
+      }
     }
   };
 
   const handleNextQuestion = async () => {
     sounds.playClick();
+
+    if (sessionHearts <= 0) {
+      setShowOutOfHeartsModal(true);
+      return;
+    }
+
     if (currentIndex < questions.length - 1) {
       setCurrentIndex((i) => i + 1);
     } else {
@@ -195,7 +240,7 @@ const SublevelQuizPage = () => {
       }
     } catch (e) {
       console.error('Quiz submission error:', e);
-      alert('Submission failed. Please check connection.');
+      alert('Submission failed. Please check your connection.');
     } finally {
       setSubmitting(false);
     }
@@ -217,7 +262,7 @@ const SublevelQuizPage = () => {
       <div className="min-h-screen flex items-center justify-center bg-pastel-mesh p-4">
         <div className="pastel-card p-6 text-center max-w-md border border-purple-100">
           <p className="text-sm font-bold text-gray-800">No questions available for this sublevel.</p>
-          <Link to="/" className="candy-btn candy-btn-purple px-5 py-2 mt-4 inline-block text-xs">
+          <Link to="/curriculum" className="candy-btn candy-btn-purple px-5 py-2 mt-4 inline-block text-xs">
             Return to Curriculum
           </Link>
         </div>
@@ -225,7 +270,7 @@ const SublevelQuizPage = () => {
     );
   }
 
-  // Results View
+  // Quiz Finished Results View
   if (isFinished && submissionResult) {
     const passed = submissionResult.passed;
     const score = submissionResult.score;
@@ -329,12 +374,12 @@ const SublevelQuizPage = () => {
               <span>Retry</span>
             </button>
             <Link
-              to="/"
+              to="/curriculum"
               onClick={() => sounds.playClick()}
               className="candy-btn candy-btn-purple flex-1 py-2 text-xs flex items-center justify-center gap-1.5"
             >
               <Home className="w-3.5 h-3.5" />
-              <span>Back to Levels</span>
+              <span>Curriculum</span>
             </Link>
           </div>
         </div>
@@ -344,11 +389,11 @@ const SublevelQuizPage = () => {
 
   return (
     <div className="min-h-screen pb-16 bg-pastel-mesh">
-      {/* Quiz Header Bar */}
+      {/* Top Header Bar */}
       <div className="bg-white/95 border-b border-gray-200/80 py-3 px-4 sticky top-16 z-30 shadow-xs">
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <Link
-            to="/"
+            to="/curriculum"
             onClick={() => sounds.playClick()}
             className="text-xs font-bold text-gray-500 hover:text-gray-800"
           >
@@ -368,14 +413,15 @@ const SublevelQuizPage = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-100 text-xs font-black text-rose-600">
+          {/* Real-time Hearts Display */}
+          <div className="flex items-center gap-1 bg-rose-50 px-2.5 py-1 rounded-md border border-rose-200 text-xs font-black text-rose-600" title="Remaining lives">
             <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
             <span>{sessionHearts}</span>
           </div>
         </div>
       </div>
 
-      {/* Main Question View */}
+      {/* Main Question Card */}
       <main className="max-w-2xl mx-auto px-4 mt-6 animate-in fade-in duration-150">
         <div className="pastel-card p-6 bg-white border border-purple-200/90 shadow-md">
           {/* Question Tag */}
@@ -413,13 +459,13 @@ const SublevelQuizPage = () => {
             </div>
           )}
 
-          {/* SORTING TYPE */}
+          {/* SORTING QUESTION */}
           {currentQ.question_type === 'sorting' && (
             <div className="space-y-4">
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <span className="text-xs font-bold text-gray-600">
-                    Reordered Syntax:
+                    Your Reordered Syntax:
                   </span>
                   {selectedTokens.length > 0 && !hasCheckedCurrent && (
                     <button
@@ -515,7 +561,7 @@ const SublevelQuizPage = () => {
             </div>
           )}
 
-          {/* Subtle Mascot Tip */}
+          {/* Sassy Tip */}
           {currentQ.threat_hint && (
             <div className="mt-4 p-3 rounded-xl bg-purple-50/60 border border-purple-100/80 text-xs text-purple-900 flex items-start gap-2">
               <span className="text-base">☕</span>
@@ -525,23 +571,54 @@ const SublevelQuizPage = () => {
             </div>
           )}
 
-          {/* Feedback Banner */}
+          {/* Comprehensive Feedback Banner */}
           {hasCheckedCurrent && (
-            <div className={`mt-4 p-3 rounded-xl border flex items-center gap-2.5 text-xs ${
+            <div className={`mt-5 p-4 rounded-2xl border-2 text-xs animate-in fade-in ${
               currentIsCorrect
-                ? 'bg-emerald-50 border-emerald-200 text-emerald-900'
-                : 'bg-rose-50 border-rose-200 text-rose-900'
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                : 'bg-rose-50 border-rose-300 text-rose-950'
             }`}>
-              {currentIsCorrect ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              ) : (
-                <XCircle className="w-4 h-4 text-rose-600 shrink-0" />
-              )}
-              <span className="font-bold">{koffiCommentary}</span>
+              <div className="flex items-start gap-3">
+                {currentIsCorrect ? (
+                  <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="font-black text-sm">
+                      {currentIsCorrect ? 'Correct Answer!' : 'Incorrect Answer'}
+                    </span>
+                    {!currentIsCorrect && (
+                      <span className="text-[11px] font-black text-rose-600 bg-rose-100 px-2 py-0.5 rounded-md flex items-center gap-1">
+                        <Heart className="w-3 h-3 fill-rose-600" /> -1 Heart
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Show Correct Answer if Wrong */}
+                  {!currentIsCorrect && (
+                    <div className="bg-white/90 p-2.5 rounded-xl border border-rose-200 font-mono text-xs">
+                      <span className="text-gray-500 font-sans font-bold block text-[10px] uppercase mb-0.5">
+                        Correct Answer:
+                      </span>
+                      <span className="text-emerald-700 font-bold whitespace-pre-wrap">
+                        {Array.isArray(currentQ.correct_answer)
+                          ? currentQ.correct_answer.join(' ')
+                          : currentQ.correct_answer}
+                      </span>
+                    </div>
+                  )}
+
+                  <p className="text-gray-700 font-medium leading-relaxed">
+                    {currentQ.explanation}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
 
-          {/* Footer Navigation */}
+          {/* Footer Action Bar */}
           <div className="mt-6 pt-4 border-t border-gray-100 flex items-center justify-between">
             <span className="text-xs text-gray-400 font-medium">
               Question {currentIndex + 1} of 15
@@ -574,7 +651,7 @@ const SublevelQuizPage = () => {
                     ? 'Grading...'
                     : currentIndex === questions.length - 1
                     ? 'Complete Quiz'
-                    : 'Next'}
+                    : 'Next Question'}
                 </span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
@@ -582,6 +659,51 @@ const SublevelQuizPage = () => {
           </div>
         </div>
       </main>
+
+      {/* Out of Hearts Modal */}
+      {showOutOfHeartsModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-xs p-4">
+          <div className="pastel-card max-w-sm w-full p-6 text-center bg-white shadow-2xl border-2 border-rose-300 animate-in zoom-in-95">
+            <div className="w-20 h-20 mx-auto rounded-3xl overflow-hidden border-2 border-rose-200 mb-3 bg-rose-50 p-1">
+              <img
+                src="/mascots/angry.jpg"
+                alt="Out of Hearts"
+                className="w-full h-full object-cover rounded-2xl"
+              />
+            </div>
+            <span className="text-[11px] font-black uppercase text-rose-600 bg-rose-50 px-2.5 py-0.5 rounded-full border border-rose-200 inline-block mb-1">
+              Out of Lives (0 Hearts)
+            </span>
+            <h3 className="text-xl font-black text-gray-900 mt-1 mb-1">No Lives Remaining!</h3>
+            <p className="text-xs text-gray-600 mb-5 leading-relaxed">
+              You lost all 5 hearts on incorrect answers. Refill your hearts to 5 to resume practicing!
+            </p>
+
+            <div className="space-y-2">
+              <button
+                onClick={async () => {
+                  sounds.playClick();
+                  await refillHearts();
+                  setSessionHearts(5);
+                  setShowOutOfHeartsModal(false);
+                }}
+                className="candy-btn candy-btn-pink w-full py-2.5 text-xs font-bold flex items-center justify-center gap-1.5"
+              >
+                <Heart className="w-4 h-4 fill-white" />
+                <span>Refill Hearts to 5 ❤️</span>
+              </button>
+
+              <Link
+                to="/curriculum"
+                onClick={() => sounds.playClick()}
+                className="candy-btn candy-btn-white w-full py-2.5 text-xs font-bold text-gray-700 block"
+              >
+                Return to Curriculum
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

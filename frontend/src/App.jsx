@@ -5,6 +5,7 @@ import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 
 // Pages
+import LandingPage from './pages/LandingPage';
 import LevelsMapPage from './pages/LevelsMapPage';
 import SublevelQuizPage from './pages/SublevelQuizPage';
 import LeaderboardPage from './pages/LeaderboardPage';
@@ -20,13 +21,24 @@ function App() {
           <Navbar />
           <main className="flex-1">
             <Routes>
-              <Route path="/" element={<LevelsMapPage />} />
+              {/* Front Page / Landing Page */}
+              <Route path="/" element={<LandingPage />} />
+              
+              {/* Curriculum Roadmap */}
+              <Route path="/curriculum" element={<LevelsMapPage />} />
               <Route path="/levels" element={<LevelsMapPage />} />
+              
+              {/* 15-Question Quiz Session */}
               <Route path="/sublevel/:id" element={<SublevelQuizPage />} />
+              
+              {/* Leaderboard and Threat Monitor */}
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/threats" element={<ThreatLairPage />} />
+              
+              {/* Authentication */}
               <Route path="/login" element={<LoginPage />} />
               <Route path="/register" element={<RegisterPage />} />
+              
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

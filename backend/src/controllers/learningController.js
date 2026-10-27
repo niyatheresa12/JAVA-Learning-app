@@ -88,7 +88,7 @@ exports.getSublevelQuestions = async (req, res) => {
     }
 
     const rows = sqlDb.all(
-      'SELECT id, sublevel_id, question_index, question_type, prompt, code_snippet, options_json, threat_hint FROM questions WHERE sublevel_id = ? ORDER BY question_index ASC',
+      'SELECT id, sublevel_id, question_index, question_type, prompt, code_snippet, options_json, correct_answer_json, explanation, threat_hint FROM questions WHERE sublevel_id = ? ORDER BY question_index ASC',
       [sublevelId]
     );
 
@@ -99,6 +99,13 @@ exports.getSublevelQuestions = async (req, res) => {
         rawOptions = JSON.parse(q.options_json);
       } catch (e) {
         rawOptions = [];
+      }
+
+      let parsedCorrect = q.correct_answer_json;
+      try {
+        parsedCorrect = JSON.parse(q.correct_answer_json);
+      } catch (e) {
+        parsedCorrect = q.correct_answer_json;
       }
 
       // If it is sorting, shuffle the tokens so they are initially disordered for the user to rearrange!
@@ -115,6 +122,8 @@ exports.getSublevelQuestions = async (req, res) => {
         prompt: q.prompt,
         code_snippet: q.code_snippet,
         options: displayTokens,
+        correct_answer: parsedCorrect,
+        explanation: q.explanation,
         threat_hint: q.threat_hint
       };
     });

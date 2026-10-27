@@ -2,24 +2,24 @@ const sqlDb = require('../config/db');
 
 const threatQuotes = {
   1: [
-    "Koffi is purring like a well-optimized JVM! Keep studying daily to maintain peace in your IDE. ☕✨",
-    "JVM heap space is clean, memory is deallocated, and Koffi loves your dedication!",
-    "Great work today! But remember... Koffi never truly sleeps."
+    "Koffi is content with your practice streak. Keep up the daily discipline! ☕",
+    "No memory leaks detected today. Your JVM is clean and stable.",
+    "Great work! Maintain your daily streak to prevent Koffi from getting restless."
   ],
   2: [
-    "Koffi is tapping his tiny paw on your spacebar. Did you forget to practice your Java today?",
-    "Every minute you procrastinate, another unhandled NullPointerException is born. Koffi is watching. 👀",
-    "Your streak is hanging by a single unclosed curly bracket. Don't test Koffi's patience!"
+    "Koffi noticed you have not practiced yet today. Don't fall behind!",
+    "Every skipped day risks breaking your streak. Koffi is watching your progress.",
+    "Your streak is waiting for today's 15 questions. Log your daily session!"
   ],
   3: [
-    "⚠️ CODE YELLOW: Koffi has placed your semicolon key under house arrest until you complete 15 questions!",
-    "Warning: Koffi is contemplating injecting an infinite while(true) loop into your alarm clock!",
-    "Do you really want to break your streak? Even the Garbage Collector has more discipline than this!"
+    "Warning: Koffi has placed your semicolon key under probation until today's practice!",
+    "Only a few hours left before midnight. Keep your streak alive!",
+    "Discipline matters in Java. Complete 15 questions before your streak resets."
   ],
   4: [
-    "🚨 DEFCON JAVA ALERT! Koffi is standing outside your door with a heavy StackOverflowError! STUDY JAVA NOW OR ELSE! 🔥",
-    "Koffi's fury cannot be contained by any try-catch block! Solved 0 questions today?! LEARN JAVA IMMEDIATELY!",
-    "You have entered Koffi's hit-list! If you don't answer 15 Java questions within 2 hours, Koffi will delete your dark mode theme!"
+    "DEFCON ALERT: Streak reset is imminent! Complete a sublevel immediately!",
+    "Koffi's patience has expired. Complete your 15 questions to reset threat level!",
+    "Your streak is in critical danger. Practice now to restore your status!"
   ]
 };
 
@@ -35,22 +35,18 @@ exports.getThreatStatus = async (req, res) => {
     const today = new Date().toISOString().slice(0, 10);
     const hasPracticedToday = user.last_active_date === today;
 
-    // Determine current threat level (1 to 4)
     let currentThreat = user.threat_level || 1;
     if (!hasPracticedToday && currentThreat < 3) {
-      currentThreat = 2; // Elevate threat if user hasn't completed lessons today
+      currentThreat = 2;
     }
 
-    // Determine mascot mood: happy, menacing, angry
     let mood = 'happy';
     if (currentThreat >= 4) mood = 'angry';
     else if (currentThreat >= 2) mood = 'menacing';
 
-    // Pick a sassy quote
     const quotes = threatQuotes[currentThreat] || threatQuotes[1];
     const quote = quotes[Math.floor(Math.random() * quotes.length)];
 
-    // Calculate hours remaining before midnight (streak deadline)
     const now = new Date();
     const midnight = new Date(now);
     midnight.setHours(24, 0, 0, 0);
@@ -59,7 +55,7 @@ exports.getThreatStatus = async (req, res) => {
     res.status(200).json({
       success: true,
       threat_level: currentThreat,
-      threat_name: currentThreat === 1 ? 'Peaceful Bean' : currentThreat === 2 ? 'Passive-Aggressive' : currentThreat === 3 ? 'Semicolon Hostage' : 'DEFCON JVM RAGE',
+      threat_name: currentThreat === 1 ? 'Peaceful' : currentThreat === 2 ? 'Warning' : currentThreat === 3 ? 'Elevated' : 'Critical',
       mood,
       has_practiced_today: hasPracticedToday,
       hours_until_streak_loss: hoursLeft,
@@ -86,14 +82,14 @@ exports.begForMercy = async (req, res) => {
     res.status(200).json({
       success: true,
       threat_level: loweredThreat,
-      message: 'Koffi accepted your pathetic plea for mercy... for the next 2 hours! NOW GO STUDY!'
+      message: 'Koffi lowered the threat level. Complete your daily session to stay safe!'
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error processing mercy request' });
   }
 };
 
-// Refill hearts
+// Refill hearts to 5
 exports.refillHearts = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -102,9 +98,35 @@ exports.refillHearts = async (req, res) => {
     res.status(200).json({
       success: true,
       hearts: 5,
-      message: 'Koffi replenished your 5 pastel hearts! Do not waste them on silly syntax errors!'
+      message: 'Hearts replenished back to 5.'
     });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error refilling hearts' });
+  }
+};
+
+// Decrement 1 heart on wrong answer
+exports.decrementHeart = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = sqlDb.get('SELECT hearts, threat_level FROM users WHERE id = ?', [userId]);
+    const currentHearts = user ? user.hearts : 5;
+    const newHearts = Math.max(0, currentHearts - 1);
+
+    let newThreat = user ? user.threat_level : 1;
+    if (newHearts <= 1) {
+      newThreat = Math.min(4, newThreat + 1);
+    }
+
+    sqlDb.run('UPDATE users SET hearts = ?, threat_level = ? WHERE id = ?', [newHearts, newThreat, userId]);
+
+    res.status(200).json({
+      success: true,
+      hearts: newHearts,
+      threat_level: newThreat,
+      message: newHearts === 0 ? 'Out of hearts!' : `1 heart lost. ${newHearts} hearts remaining.`
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error decrementing heart' });
   }
 };

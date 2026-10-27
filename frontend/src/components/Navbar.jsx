@@ -62,10 +62,10 @@ const Navbar = () => {
             {/* Navigation Links */}
             <nav className="hidden md:flex items-center gap-1.5">
               <Link
-                to="/"
+                to="/curriculum"
                 onClick={() => sounds.playClick()}
                 className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-bold transition-colors ${
-                  isActive('/') || isActive('/levels')
+                  isActive('/curriculum') || isActive('/levels')
                     ? 'bg-purple-100/70 text-purple-700'
                     : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100/60'
                 }`}

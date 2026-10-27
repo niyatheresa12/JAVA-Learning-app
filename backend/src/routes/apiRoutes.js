@@ -14,9 +14,7 @@ router.get('/auth/me', protect, authController.getMe);
 router.put('/auth/avatar', protect, authController.updateAvatar);
 
 // Curriculum and Learning routes
-// Note: getLevels can optionally accept auth to return user-specific stars & locks
 router.get('/levels', (req, res, next) => {
-  // Optional auth
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
     return protect(req, res, next);
   }
@@ -34,9 +32,10 @@ router.get('/leaderboard', (req, res, next) => {
   next();
 }, leaderboardController.getLeaderboard);
 
-// Menacing / Threat routes
+// Menacing / Threat & Hearts routes
 router.get('/threats/status', protect, threatController.getThreatStatus);
 router.post('/threats/beg-for-mercy', protect, threatController.begForMercy);
 router.post('/user/hearts/refill', protect, threatController.refillHearts);
+router.post('/user/hearts/decrement', protect, threatController.decrementHeart);
 
 module.exports = router;
